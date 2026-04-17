@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { dailyClaimAction } from "@/modules/rewards/actions/daily-claim";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { useRouter } from "next/navigation";
 
 interface Props {
@@ -18,25 +19,30 @@ export function DailyClaimButton({ canClaim, streak }: Props) {
     streak: number;
     isBonus: boolean;
   } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleClaim() {
     setLoading(true);
+    setError(null);
     const res = await dailyClaimAction();
     setLoading(false);
+
     if (res.success) {
       setResult({ pointsEarned: res.pointsEarned, streak: res.streak, isBonus: res.isBonus });
-      router.refresh();
+      setTimeout(() => router.refresh(), 1000);
+    } else {
+      setError(res.error);
     }
   }
 
   if (result) {
     return (
-      <div className="flex flex-col items-center gap-1 py-2 animate-in fade-in duration-300">
-        <span className="text-3xl">🎉</span>
-        <p className="font-bold text-indigo-700 text-lg">+{result.pointsEarned} pts</p>
+      <div className="flex flex-col items-center gap-2 py-4 bg-gradient-to-br from-green-50 to-indigo-50 rounded-xl border border-green-200 animate-in fade-in duration-300">
+        <span className="text-4xl">🎉</span>
+        <p className="font-bold text-indigo-700 text-xl">+{result.pointsEarned} pts</p>
         {result.isBonus && (
-          <p className="text-xs text-green-600 font-medium">
-            🔥 Racha de {result.streak} días — ¡bonus activo!
+          <p className="text-sm text-green-600 font-semibold">
+            🔥 Racha de {result.streak} días — ¡+{Math.min(result.streak * 10, 100)}% bonus!
           </p>
         )}
       </div>
@@ -44,20 +50,31 @@ export function DailyClaimButton({ canClaim, streak }: Props) {
   }
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col gap-3">
+      {error && <Alert variant="error" message={error} />}
+
       <Button
         onClick={handleClaim}
         loading={loading}
         disabled={!canClaim}
         size="lg"
-        className="w-full"
+        fullWidth
       >
         {canClaim ? "⭐ Reclamar puntos diarios" : "✅ Ya reclamaste hoy"}
       </Button>
+
       {streak > 0 && (
-        <p className="text-xs text-gray-500">
-          🔥 Racha actual: <span className="font-semibold text-orange-500">{streak} días</span>
-        </p>
+        <div className="text-center">
+          <p className="text-sm font-semibold text-orange-600">
+            🔥 Racha: {streak} días
+          </p>
+          <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+            <div
+              className="bg-gradient-to-r from-orange-400 to-red-500 h-1.5 rounded-full"
+              style={{ width: `${Math.min((streak / 10) * 100, 100)}%` }}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
